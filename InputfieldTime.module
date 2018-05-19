@@ -1,0 +1,114 @@
+<?php namespace ProcessWire;
+
+/**
+ * POC ProcessWire Time Inputfield
+ *
+ * Related to FieldtypeTime and TimeInterval class. Provides comfortable input autocorrection.
+ *
+ * @author Christoph Thelen aka @kixe 2018/02/26
+ * @copyright © 208 Christoph Thelen
+ * @license Licensed under GNU/GPL v3
+ * @link https://processwire.com/talk/topic/...
+ * @version 1.0.0 2018/02/26 - init
+ *
+ * made for ProcessWire 3.x, Copyright 2016 by Ryan Cramer
+ * https://processwire.com
+ * 
+ */
+
+class InputfieldTime extends Inputfield {
+    public static function getModuleInfo() {
+        return array(
+            'title'     => __('Inputfield Time', __FILE__),
+            'summary'   => __('Allows entry of daytimes and signed time intervals. Provides comfortable input autocorrection.', __FILE__),
+            'version'   => 100,
+            'requires'  => array('FieldtypeTime'),
+            'author'    => 'kixe',
+        );
+    }
+
+    public function init() {
+        $this->attr('showPicker', 0);
+        $this->attr('type', 'text');
+        $this->attr('size', 12);
+        $this->attr('maxlength', 44);
+        $this->attr('placeholder', '');
+        $this->attr('pattern', '');
+        $this->set('requiredAttr', 0);
+        $this->set('separator', ':'); // configurable?
+        $this->set('showSeconds', 0);
+        $this->set('initValue', ''); // optional initial value
+        $this->set('stripTags', true); // strip tags from input
+        parent::init();
+    }
+
+    public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+        $url = $this->config->urls->InputfieldTime;
+        $this->config->scripts->add($url . 'InputfieldTime.trigger.js');
+        parent::renderReady($parent, $renderValueMode);
+    }
+
+    public function ___render() {
+        $out = '';
+        if ($this->getAttribute('showPicker') && $this->showSeconds != 1) {
+            $id = $this->id;
+            $out .= "\n<div class=\"input-group clockpicker\" data-autoclose=\"true\">";
+            $out .= "\n<input " . $this->getAttributesString() . " onclick=\"InputFieldTimePickerTrigger('#$id')\"/>";
+            $out .= "\n<span class=\"input-group-addon\">\n\t<span class=\"fa fa-clock-o\"></span>\n</span>";
+            $out .= "\n</div>";
+        } else {
+            $out .= "\n<input " . $this->getAttributesString() . " />";
+        }
+        return $out;
+    }
+
+    public function setAttribute($key, $value) {
+        if($key == 'value') $value = $this->sanitizeValue($value);
+        return parent::setAttribute($key, $value); 
+    }
+
+    protected function sanitizeValue($value) {
+        if ($value instanceof \TimeInterval) return $value->out((int) $this->showSeconds);
+        if (!strlen($value)) return null;
+        $sign = strpos($value, '-') === 0? '-' : '';
+        if (!ctype_digit("$value")) $value = trim(preg_replace('/[^\d]+/', ':', $value),':');
+        if (!strlen($value)) return null;
+        if (strpos($value,':') === false) $value = "$value:00";
+        return $sign . $value;
+    }
+
+    public function ___getConfigInputfields() {
+        $inputfields = parent::___getConfigInputfields();
+
+        $f = $this->modules->get('InputfieldCheckbox');
+        $f->setAttribute('name', 'showSeconds');
+        $f->label = $this->_('Show Seconds');
+        $f->description = $this->_('Activate to display and save seconds. When deactivated, the system rounds the seconds in the input field to full minute.');
+        $format = $this->showSeconds? "hh:mm:ss" :"hh:mm";
+        $f->attr('value', 1);
+        $f->attr('checked', $this->showSeconds ? 'checked' : '');
+        $f->columnWidth = 33;
+        $inputfields->append($f);
+
+        $f = $this->modules->get('InputfieldCheckbox');
+        $f->label = $this->_("Show Picker");
+        $f->description = $this->_('Show a Javascript clock-picker for **hh:mm** time fields?');
+        $f->showIf = "showSeconds!=1";
+        $f->attr('name', 'showPicker');
+        $f->attr('value', 0);
+        $f->attr('checked', $this->showPicker ? 'checked' : '');
+        $f->columnWidth = 34;
+        $inputfields->append($f);
+
+        $f = $this->modules->get('InputfieldTime');
+        $f->label = $this->_("Preview");
+        $f->attr('name', 'preview');
+        $f->attr('value', '');
+        $f->attr('placeholder', $format);
+        $f->attr('showPicker', $this->showPicker);
+        $f->columnWidth = 33;
+        $inputfields->append($f);
+
+        return $inputfields;
+    }
+}

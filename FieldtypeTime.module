@@ -1,0 +1,148 @@
+<?php namespace ProcessWire;
+
+/**
+ * POC ProcessWire Time Fieldtype
+ *
+ * Field that stores a time value as integer and provides TimeInterval data object as output value
+ * the fieldtype handles daytimes (within 24 hours) and signed time intervals
+ * The underlying MySQL type (bigint) allows a range from approx '-27.777.777.777:00:00' to '27.777.777.777:00:00'
+ * (more than 3.000.000 year)
+ *
+ * @author Christoph Thelen aka @kixe 2018/02/26
+ * @copyright © 208 Christoph Thelen
+ * @license Licensed under GNU/GPL v3
+ * @link https://processwire.com/talk/topic/...
+ * @version 1.0.0 2018/02/26 - init
+ *
+ * made for ProcessWire 3.x, Copyright 2016 by Ryan Cramer
+ * https://processwire.com
+ * 
+ */
+
+class FieldtypeTime extends Fieldtype {
+
+    public static function getModuleInfo()
+    {
+        return array(
+            'title'     => __('Fieldtype Time', __FILE__),
+            'summary'   => __('Stores a daytime (24 hours) or a time interval. Can handle signed time periods of more than 3.000.000 years. Multiple options for output (formatting, manipulation)', __FILE__),
+            'version'   => 100,
+            'author'    => 'kixe',
+            'installs'  => array('InputfieldTime'),
+            'href'      => 'https://processwire.com/talk/topic/...',
+        );
+    }
+
+    public function __construct() {
+        require_once(__DIR__ . "/TimeInterval/TimeInterval.php");
+    }
+
+    public function init() {
+        $this->set('type', 0);
+        $this->set('outputFormat', '');
+        parent::init();
+    }
+
+    public function getInputfield(Page $page, Field $field) {
+        $inputfield = $this->modules->get('InputfieldTime');
+        $inputfield->class = $this->className();
+        return $inputfield;
+    }
+
+    /**
+     * Sanitize value
+     */
+    public function sanitizeValue(Page $page, Field $field, $value) {
+        if($value instanceof \TimeInterval) $time = $value;
+        else {
+            $time = new \TimeInterval;
+            if($value !== '0' && empty($value)) $time->stamp = null;
+            else if (is_int($value)) $time->stamp = $value;
+            else if (ctype_digit(ltrim($value, '-'))) $time->stamp = (int) $value;
+            else if (false === strpos($value, ':')  || false === $time->createFromTimeString($value)) $time->stamp = null;
+        }
+        if ($field->daytime && $time->stamp !== null) $time->stamp = \TimeInterval::getDaytime($time->stamp);
+        return $time;
+    }
+
+    /**
+     * Match a date/time value in the database, as used by PageFinder
+     */
+    public function getMatchQuery($query, $table, $subfield, $operator, $value)
+    {
+        $time = $this->sanitizeValue($page, $field, $value);
+        $value = $time->stamp;
+
+        $database = $this->wire('database');
+        if ($database->isOperator($operator)) {
+            $table = $database->escapeTable($table);
+            $subfield = $database->escapeCol($subfield);
+            $value = $database->escapeStr($value);
+            $query->where("$table.{$subfield}{$operator}'$value'");
+        }
+
+        return $query;
+    }
+
+    /**
+     * Convert value to int (storage)
+     */
+    public function ___sleepValue(Page $page, Field $field, $value) {
+        if (!($value instanceof \TimeInterval)) return null;
+        if (!$field->showSeconds && $cut = $value->stamp%60) $value->stamp += $cut > 30? 60-$cut : -$cut;
+        return  $value->stamp; // null or int
+    }
+
+    /**
+     * Convert value from int to TimeInterval object
+     */
+    public function ___wakeupValue(Page $page, Field $field, $value) {
+        $value = (!is_numeric($value) && empty($value))? null : (int) $value;
+        return new \TimeInterval($value);
+    }
+
+    /**
+     * Convert value from TimeInterval object to formatted string
+     */
+    public function ___formatValue(Page $page, Field $field, $value) {
+        // if($this->languages && !$this->user->language->isDefault()) $format = $field->get("outputFormat{$this->user->language}"); 
+        if (!($value instanceof \TimeInterval)) $value = $this->sanitizeValue($page, $field, $value);
+        if (!$field->outputFormat) return $value->out((int)$field->showSeconds);
+        return $value->format($field->outputFormat);
+    }
+
+    public function getDatabaseSchema(Field $field) {
+        $schema = parent::getDatabaseSchema($field);
+        $schema['data'] = 'bigint NOT NULL';
+        return $schema;
+    }
+
+    /**
+     * Field configuration screen
+     */
+    public function ___getConfigInputfields(Field $field) {
+        $inputfields = parent::___getConfigInputfields($field);
+ 
+        $f = $this->modules->get('InputfieldRadios'); 
+        $f->attr('name+id', 'daytime'); 
+        $f->label = $this->_('Type'); 
+        $f->description = sprintf($this->_('If daytime is selected, only positive values will be stored. Max: %1s. Inputs are corrected accordingly: e.g. %2s'), '23:59:00', '25:00:00 &rarr; 01:00:00 or -01:00:00 &rarr; 23:00:00.'); 
+        $f->icon = 'clock-o';
+        $f->columnWidth = 33;
+        $f->addOption(0, 'Interval');
+        $f->addOption(1, 'Daytime');
+        $f->attr('value', (int) $field->daytime); 
+        $inputfields->add($f);
+
+        $f = $this->modules->get('InputfieldText');
+        $f->attr('name+id', 'outputFormat');
+        $f->label = $this->_('Time Output Format');
+        $f->attr('value', $field->outputFormat);
+        $f->description = $this->_('Define an output format string. Use placeholders for hours (h,H,g,G) minutes (i), seconds (s), and meridian (a,A). The same replacement characters are available as for PHP date() function. Escape placeholder characters with a backslash if needed.');
+        $f->notes = $this->_('Leave the field blank to get the format specified for the inputfield.');
+        $f->columnWidth = 67;
+        $inputfields->add($f);
+
+        return $inputfields;
+    }
+}
