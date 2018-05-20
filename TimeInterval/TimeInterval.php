@@ -17,7 +17,7 @@
  * 
  * @version 1.0.1
  * @since 1.0.0 init - 2018-02-21
- * @since 1.0.1 added mrthods add() and sub() fixed bug in parser - 2018-05-19
+ * @since 1.0.1 added methods add() and sub() fixed parser bug - 2018-05-19
  * 
  */
 
@@ -362,7 +362,6 @@ class TimeInterval {
      protected function parse($spec) {
         $type = gettype($spec);
         if ($type !== 'string') throw new Exception("Argument 1 passed to parse() must be of type string, $type given");
-        // $regex = "@(-)?P(\d+([.,]\d+)?Y)?(\d+([.,]\d+)?M)?(\d+([.,]\d+)?W)?(\d+([.,]\d+)?D)?(T(\d+([.,]\d+)?H)?(\d+([.,]\d+)?M)?(\d+([.,]\d+)?S)?)?@i"; // handles fractions
         $regex = "@(-)?P(\d+?Y)?(\d+?M)?(\d+?W)?(\d+?D)?(T(\d+?H)?(\d+?M)?(\d+?S)?)?@i"; // doesn't handles fractions
 
         if (!preg_match_all($regex, $spec, $matches) || strlen($matches[0][0]) != strlen($spec)) throw new Exception("Unknown or bad format ($spec)");
