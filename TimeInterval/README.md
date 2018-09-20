@@ -46,20 +46,21 @@ Furthermore it handles some limitations/ bugs of PHP\DateInterval and PHP\DateTi
 
 ## Properties
 
-+ `$stamp` daytime or time interval reflected by a signed integer value (seconds), default: null
 + `$separator` Separator used for direct output, default: ':'
-+ `$sign` string '-' for negative values. Otherwise, an empty string is returned.
 
 ## Methods
 
-### Set, change or manipulate value
+**stamp()**
 
 ``` 
-    /**
-     * direct manipulation of stamp (int seconds)
+    /** 
+     * setter/ getter for property stamp - validation of type and range
+     * @param bool/ null/ int
+     * @return $stamp null/ signed int stamp
+     * @throws Exception if type is invalid
      *
      */
-	$this->stamp = 456;
+    public function stamp($stamp = true)
 ```
 
 **createFromTimeString()**
@@ -87,6 +88,16 @@ Furthermore it handles some limitations/ bugs of PHP\DateInterval and PHP\DateTi
     public function invert()
 ```
 
+**sign()**
+
+```
+    /** 
+     * @return string sign (-) if stamp is negative
+     *
+     */
+    public function sign() 
+```
+  
 ***add()***
 
 ```  
