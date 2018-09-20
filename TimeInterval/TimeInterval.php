@@ -15,15 +15,17 @@
  * @author Christoph Thelen aka kixe
  * @license Licensed under GNU/GPL v3
  * 
- * @version 1.0.1
- * @since 1.0.0 init - 2018-02-21
- * @since 1.0.1 added methods add() and sub() fixed parser bug - 2018-05-19
+ * @version 1.0.2
+ *
+ * @since 1.0.0 init - 2018/02/21
+ * @since 1.0.1 added methods add() and sub() fixed parser bug - 2018/05/19
+ * @since 1.0.2 protect property stamp, added method stamp() - 2018/09/20
  * 
  */
 
 class TimeInterval {
 
-    public $stamp; // time or time interval reflected by a signed integer value, default null
+    protected $stamp; // time or time interval reflected by a signed integer value, default null
 
     /**
      * @see separator(), out()
@@ -57,7 +59,7 @@ class TimeInterval {
      * 
      */
     public function __construct($spec = null) {
-        if (!is_null($spec) && !is_numeric($spec) && !is_string($spec)) throw new Exception("Unknown or bad type.");
+        if (!is_null($spec) && !is_numeric($spec) && !is_string($spec)) throw new Exception("Failed to construct TimeInterval. Argument 1 passed to __construct() nknown or bad type.");
         if ($spec === null) $this->stamp = null;
         else if (is_int($spec)) $this->stamp = $spec;
         else if (ctype_digit(ltrim($spec, '-'))) $this->stamp = (int) $spec;
@@ -67,6 +69,30 @@ class TimeInterval {
     } 
 
     /** 
+     * setter/ getter for property stamp - validation of type and range
+     * @param bool/ null/ int
+     * @return $stamp null/ signed int stamp
+     * @throws Exception if type is invalid
+     *
+     */
+    public function stamp($stamp = true) {
+        // get
+        if ($stamp === true) return $this->stamp;
+        // unset 
+        if ($stamp === null) {
+            $this->stamp = null;
+            return null;
+        }
+        // set
+        $type = gettype($stamp);
+        if ($type !== 'integer') throw new Exception("Argument 1 passed to stamp() must be of type null or integer, $type given");
+         // PHP_INT_MAX or length (14 digits) exceeded
+        if (strlen($stamp) > 14 || false === is_int($stamp/1)) throw new Exception("Integer overflow. Unable to set stamp with precision. ($stamp)");
+        $this->stamp = $stamp;
+        return $stamp;
+    }
+
+    /** 
      * add a time interval
      * @param $value int / string / TimeInterval object
      * @return $this (modified)
@@ -74,7 +100,7 @@ class TimeInterval {
      */
     public function add($value) {
         $tio = $value instanceof self? $value : new TimeInterval($value);
-        $this->stamp += $tio->stamp;
+        $this->stamp($this->stamp + $tio->stamp);
         return $this;
     }
 
@@ -86,7 +112,7 @@ class TimeInterval {
      */
     public function sub($value) {
         $tio = $value instanceof self? $value : new TimeInterval($value);
-        $this->stamp -= $tio->stamp;
+        $this->stamp($tio->stamp *= -1);
         return $this;
     }
 
@@ -95,7 +121,7 @@ class TimeInterval {
         // DateTime::modify
         $dto = DateTime::createFromFormat('U', $this->stamp);
         $dto->modify($modify);
-        $this->stamp = $dto->format('U');
+        $this->stamp($dto->format('U'));
         return $this;
     }
     */
@@ -107,7 +133,7 @@ class TimeInterval {
      *
      */
     public function days() {
-        return (int) floor(abs($this->stamp) / 86400);
+        return (int) floor(abs($this->stamp / 86400));
     }
 
     /** 
@@ -148,18 +174,16 @@ class TimeInterval {
      * @return assoc array
      * 
      */
-    protected function split($handle = '111', $round = 0, $stamp = null) {
-        if ($stamp === null) $stamp = $this->stamp;
-        $type = gettype($stamp);
-        if ($type !== 'integer') throw new Exception("Argument 3 passed to split() must be of type integer, $type given");
-        if ($stamp === null) return null;
+    protected function split($handle = '111', $round = 0) {
+        if ($this->stamp === null) return null;
+
         // split stamp to get hours, minutes and seconds
         $showH = 0 === strpos($handle, '1')? true : false;
         $showM = 1 === strpos($handle, '1', 1)? true : false;
         $showS = 2 === strpos($handle, '1', 2)? true : false;
         $return = array();
         $h = $m = 0;
-        $s = abs($stamp);
+        $s = abs($this->stamp);
         if ($s >= 3600 && $showH) {
             $h = $s/3600;
             $_s = $s;
@@ -278,7 +302,7 @@ class TimeInterval {
         $hasA = empty(array_intersect($rchars, array('a','A')))? 0 : 1;
 
         // get values for time units
-        $parts = $this->split("$hasH$hasM$hasS", $round, $stamp);
+        $parts = $this->split("$hasH$hasM$hasS", $round);
 
         // set values array (time)
         $rvals = array();
@@ -348,7 +372,8 @@ class TimeInterval {
             if (strlen($stamp) > 14 || false === is_int($stamp/1)) throw new Exception("Integer overflow. Unable to handle value with precision. ($string)");
             $m *= 60;
         }
-        $this->stamp = $invert? $stamp * -1 : $stamp;
+        $stamp = $invert? $stamp * -1 : $stamp;
+        $this->stamp($stamp);
         return true;
     }
 
