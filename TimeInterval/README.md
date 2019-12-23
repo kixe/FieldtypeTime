@@ -44,26 +44,31 @@ Furthermore it handles some limitations/ bugs of PHP\DateInterval and PHP\DateTi
 
 ```
 
-## Properties
+## Protected properties
 
+*Use related methods to get the values*
+
++ `$stamp` daytime or time interval reflected by a signed integer value (seconds), default: null
 + `$separator` Separator used for direct output, default: ':'
 
 ## Methods
 
-**stamp()**
+### Set, change or manipulate value
 
-``` 
-    /** 
-     * setter/ getter for property stamp - validation of type and range
+***stamp()***
+
+```
+/** 
+     * setter/ getter for protected property stamp - validation of type and range
      * @param bool/ null/ int
      * @return $stamp null/ signed int stamp
      * @throws Exception if type is invalid
      *
      */
-    public function stamp($stamp = true)
+    public function stamp($stamp = true) 
 ```
 
-**createFromTimeString()**
+***createFromTimeString()***
  
 ```
     /**
@@ -77,7 +82,7 @@ Furthermore it handles some limitations/ bugs of PHP\DateInterval and PHP\DateTi
     public function createFromTimeString($string = null)
 ```
 
-**invert()**
+***invert()***
 
 ```
     /** 
@@ -87,17 +92,7 @@ Furthermore it handles some limitations/ bugs of PHP\DateInterval and PHP\DateTi
      */
     public function invert()
 ```
-
-**sign()**
-
-```
-    /** 
-     * @return string sign (-) if stamp is negative
-     *
-     */
-    public function sign() 
-```
-  
+    
 ***add()***
 
 ```  
@@ -123,6 +118,7 @@ Furthermore it handles some limitations/ bugs of PHP\DateInterval and PHP\DateTi
 ```
 
 ### Output 
+
 ***out()*** called by magic ***__toString()***
 
 ```
@@ -191,6 +187,16 @@ Furthermore it handles some limitations/ bugs of PHP\DateInterval and PHP\DateTi
     public function separator($set = '')
 ```
 
+***sign()***
+
+```
+    /** 
+     * @return string sign (-) if stamp is negative
+     *
+     */
+    public function sign()
+```
+    
 ### Conversion to a valid daytime stamp (static)
 
 ***getDaytime()***
