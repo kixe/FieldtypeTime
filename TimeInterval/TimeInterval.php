@@ -15,11 +15,12 @@
  * @author Christoph Thelen aka kixe
  * @license Licensed under GNU/GPL v3
  * 
- * @version 1.0.2
+ * @version 1.0.3
  *
  * @since 1.0.0 init - 2018-02-21
  * @since 1.0.1 added methods add() and sub() fixed parser bug - 2018-05-19
  * @since 1.0.2 protect property stamp, added method stamp() - 2018-09-20
+ * @since 1.0.3 added function className() maybe called by ProcessWire determining this as a field value object - 2020-09-16
  * 
  */
 
@@ -413,5 +414,14 @@ class TimeInterval {
      */
     public function __toString() {
         return strval($this->out());
+    }
+
+    /**
+     * render the class name
+     * @return string
+     *
+     */
+     public function className() {
+        return get_class($this);
     }
 }
