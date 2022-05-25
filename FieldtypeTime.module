@@ -13,10 +13,11 @@
  * @license Licensed under GNU/GPL v3
  * @link https://processwire.com/talk/topic/...
  *
- * @version 1.0.1
+ * @version 1.0.2
  *
  * @since 1.0.0 init - 2018-02-26
  * @since 1.0.1 protect property stamp, added method stamp() - 2018-09-20
+ * @since 1.0.2 fixed bug sleepValue() undefined variable $add - 2022-05-25
  *
  * made for ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
@@ -30,7 +31,7 @@ class FieldtypeTime extends Fieldtype {
         return array(
             'title'     => __('Fieldtype Time', __FILE__),
             'summary'   => __('Stores a daytime (24 hours) or a time interval. Can handle signed time periods of more than 3.000.000 years. Multiple options for output (formatting, manipulation)', __FILE__),
-            'version'   => 100,
+            'version'   => 102,
             'author'    => 'kixe',
             'installs'  => array('InputfieldTime'),
             'href'      => 'https://processwire.com/talk/topic/...',
@@ -99,8 +100,9 @@ class FieldtypeTime extends Fieldtype {
     public function ___sleepValue(Page $page, Field $field, $value) {
         if (!($value instanceof \TimeInterval)) return null;
         if (!$field->showSeconds && $cut = $value->stamp() % 60) {
-            $add += $cut > 30? 60-$cut : -$cut;
-            $value->add();
+            // round up/ down to full minute
+            $add = $cut > 30? 60-$cut : -$cut;
+            $value->add($add);
         }
         return  $value->stamp(); // null or int
     }
