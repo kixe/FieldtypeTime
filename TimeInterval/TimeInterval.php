@@ -15,12 +15,13 @@
  * @author Christoph Thelen aka kixe
  * @license Licensed under GNU/GPL v3
  * 
- * @version 1.0.3
+ * @version 1.0.4
  *
  * @since 1.0.0 init - 2018-02-21
  * @since 1.0.1 added methods add() and sub() fixed parser bug - 2018-05-19
  * @since 1.0.2 protect property stamp, added method stamp() - 2018-09-20
  * @since 1.0.3 added function className() maybe called by ProcessWire determining this as a field value object - 2020-09-16
+ * @since 1.0.4 format() and out() return always strings, empty string if $stamp === null
  * 
  */
 
@@ -60,7 +61,7 @@ class TimeInterval {
      * 
      */
     public function __construct($spec = null) {
-        if (!is_null($spec) && !is_numeric($spec) && !is_string($spec)) throw new Exception("Failed to construct TimeInterval. Argument 1 passed to __construct() nknown or bad type.");
+        if (!is_null($spec) && !is_numeric($spec) && !is_string($spec)) throw new Exception("Failed to construct TimeInterval. Argument 1 passed to __construct() unknown or bad type.");
         if ($spec === null) $this->stamp = null;
         else if (is_int($spec)) $this->stamp = $spec;
         else if (ctype_digit(ltrim($spec, '-'))) $this->stamp = (int) $spec;
@@ -237,7 +238,7 @@ class TimeInterval {
      * 
      */
     public function out($showSec = 1, $round = 0) {
-        if ($this->stamp === null) return null;
+        if ($this->stamp === null) return '';
         $vals = $this->split("11" . (int) $showSec, (int) $round);
         foreach ($vals as $key => &$val) {
             if ($key == 'h' && strlen($val) >= 2) continue;
@@ -273,7 +274,7 @@ class TimeInterval {
     public function format($format, $round = 0, $daytime = false) {
         $type = gettype($format);
         if ($type !== 'string') throw new Exception("Argument 1 passed to format() must be of type string, $type given");
-        if ($this->stamp === null) return null;
+        if ($this->stamp === null) return '';
         $stamp = $this->stamp;
         $sign = $this->sign();
         $meridian = false;
