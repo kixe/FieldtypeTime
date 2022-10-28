@@ -15,13 +15,14 @@
  * @author Christoph Thelen aka kixe
  * @license Licensed under GNU/GPL v3
  * 
- * @version 1.0.4
+ * @version 1.0.5
  *
  * @since 1.0.0 init - 2018-02-21
  * @since 1.0.1 added methods add() and sub() fixed parser bug - 2018-05-19
  * @since 1.0.2 protect property stamp, added method stamp() - 2018-09-20
  * @since 1.0.3 added function className() maybe called by ProcessWire determining this as a field value object - 2020-09-16
  * @since 1.0.4 format() and out() return always strings, empty string if $stamp === null
+ * @since 1.0.5 fixed bug if stamp is null functions add() sub() having no effect, days(), revert(), sign() return bool false
  * 
  */
 
@@ -101,6 +102,7 @@ class TimeInterval {
      *
      */
     public function add($value) {
+        if ($this->stamp === null) return $this;
         $tio = $value instanceof self? $value : new TimeInterval($value);
         $this->stamp($this->stamp + $tio->stamp);
         return $this;
@@ -113,6 +115,7 @@ class TimeInterval {
      *
      */
     public function sub($value) {
+        if ($this->stamp === null) return $this;
         $tio = $value instanceof self? $value : new TimeInterval($value);
         $this->stamp($tio->stamp *= -1);
         return $this;
@@ -135,24 +138,27 @@ class TimeInterval {
      *
      */
     public function days() {
+        if ($this->stamp === null) return false;
         return (int) floor(abs($this->stamp / 86400));
     }
 
     /** 
      * invert the timestamp
-     * @return current state, 0=positive, 1=negative
+     * @return bool false|int current state, 0=positive, 1=negative
      *
      */
     public function invert() {
+        if ($this->stamp === null) return false;
         $this->stamp *= -1;
         return $this->stamp < 0? 1 : 0;
     }
 
     /** 
-     * @return string sign (-) if stamp is negative
+     * @return bool false|string sign (-) if stamp is negative
      *
      */
     public function sign() {
+        if ($this->stamp === null) return false;
         return $this->stamp < 0? '-' : '';
     }
 

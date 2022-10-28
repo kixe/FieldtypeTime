@@ -9,15 +9,16 @@
  * (more than 3.000.000 year)
  *
  * @author Christoph Thelen aka @kixe 2018/02/26
- * @copyright © 208 Christoph Thelen
+ * @copyright © 208 Christoph Thele
  * @license Licensed under GNU/GPL v3
  * @link https://processwire.com/talk/topic/...
  *
- * @version 1.0.2
+ * @version 1.0.3
  *
  * @since 1.0.0 init - 2018-02-26
  * @since 1.0.1 protect property stamp, added method stamp() - 2018-09-20
  * @since 1.0.2 fixed bug sleepValue() undefined variable $add - 2022-05-25
+ * @since 1.0.3 added function isEmptyValue() and isDeleteValue() to make a difference between empty (null) and 0 - 2022-10-28
  *
  * made for ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
@@ -31,7 +32,7 @@ class FieldtypeTime extends Fieldtype {
         return array(
             'title'     => __('Fieldtype Time', __FILE__),
             'summary'   => __('Stores a daytime (24 hours) or a time interval. Can handle signed time periods of more than 3.000.000 years. Multiple options for output (formatting, manipulation)', __FILE__),
-            'version'   => 102,
+            'version'   => 103,
             'author'    => 'kixe',
             'installs'  => array('InputfieldTime'),
             'href'      => 'https://processwire.com/talk/topic/...',
@@ -55,17 +56,44 @@ class FieldtypeTime extends Fieldtype {
     }
 
     /**
+     * Is given value considered empty by this Fieldtype?
+     * 
+     * @param Field $field
+     * @param mixed $value
+     * @return bool
+     * 
+     */
+    public function isEmptyValue(Field $field, $value) {
+        if($value === "0" || $value === 0) {
+            return false;
+        }
+        return empty("$value"); // TimeInterval::toString
+    }
+
+    /**
+     * Is value one that should be deleted rather than stored in the DB?
+     * 
+     * @param Page $page
+     * @param Field $field
+     * @param mixed $value
+     * @return bool
+     * 
+     */
+    public function isDeleteValue(Page $page, Field $field, $value) {
+        return $this->isEmptyValue($field, $value); 
+    }
+
+    /**
      * internal sanitizer
      */
     protected function _sanitizeValue($value) {
-        if($value instanceof \TimeInterval) $time = $value;
-        else {
-            $time = new \TimeInterval;
-            if($value !== '0' && empty($value)) $time->stamp(null);
-            else if (is_int($value)) $time->stamp($value);
-            else if (ctype_digit(ltrim($value, '-'))) $time->stamp((int) $value);
-            else if (false === strpos($value, ':')  || false === $time->createFromTimeString($value)) $time->stamp(null);
-        }
+        if($value instanceof \TimeInterval) return $value;
+
+        $time = new \TimeInterval(null);
+        if (is_int($value) || $value === '0' || is_numeric($value)) $time->stamp((int) $value);
+        else if (ctype_digit(ltrim($value, '-'))) $time->stamp((int) $value);
+        else if (false === strpos($value, ':')  || false === $time->createFromTimeString($value)) $time->stamp(null);
+
         return $time;
     }
 
@@ -98,13 +126,13 @@ class FieldtypeTime extends Fieldtype {
      * Convert value to int (storage)
      */
     public function ___sleepValue(Page $page, Field $field, $value) {
-        if (!($value instanceof \TimeInterval)) return null;
+        if (!($value instanceof \TimeInterval)) return '';
         if (!$field->showSeconds && $cut = $value->stamp() % 60) {
             // round up/ down to full minute
             $add = $cut > 30? 60-$cut : -$cut;
             $value->add($add);
         }
-        return  $value->stamp(); // null or int
+        return $value->stamp(); // null or int
     }
 
     /**
