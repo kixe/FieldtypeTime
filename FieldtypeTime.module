@@ -13,12 +13,13 @@
  * @license Licensed under GNU/GPL v3
  * @link https://processwire.com/talk/topic/...
  *
- * @version 1.0.3
+ * @version 1.0.4
  *
  * @since 1.0.0 init - 2018-02-26
  * @since 1.0.1 protect property stamp, added method stamp() - 2018-09-20
  * @since 1.0.2 fixed bug sleepValue() undefined variable $add - 2022-05-25
  * @since 1.0.3 added function isEmptyValue() and isDeleteValue() to make a difference between empty (null) and 0 - 2022-10-28
+ * @since 1.0.4 update getMatchQuery() – 2023-11-11
  *
  * made for ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
@@ -32,7 +33,7 @@ class FieldtypeTime extends Fieldtype {
         return array(
             'title'     => __('Fieldtype Time', __FILE__),
             'summary'   => __('Stores a daytime (24 hours) or a time interval. Can handle signed time periods of more than 3.000.000 years. Multiple options for output (formatting, manipulation)', __FILE__),
-            'version'   => 103,
+            'version'   => 104,
             'author'    => 'kixe',
             'installs'  => array('InputfieldTime'),
             'href'      => 'https://processwire.com/talk/topic/...',
@@ -107,19 +108,13 @@ class FieldtypeTime extends Fieldtype {
     }
 
     /**
-     * Match a date/time value in the database, as used by PageFinder
+     * Match a time value in the database, as used by PageFinder
      */
     public function getMatchQuery($query, $table, $subfield, $operator, $value) {
         $time = $this->_sanitizeValue($value);
         $value = $time->stamp();
-        $database = $this->wire('database');
-        if ($database->isOperator($operator)) {
-            $table = $database->escapeTable($table);
-            $subfield = $database->escapeCol($subfield);
-            $value = $database->escapeStr($value);
-            $query->where("$table.{$subfield}{$operator}'$value'");
-        }
-        return $query;
+        if(empty($subfield)) $subfield = 'data';
+        return parent::getMatchQuery($query, $table, $subfield, $operator, $value);
     }
 
     /**
